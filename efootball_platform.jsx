@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { supabase } from "./supabase";
 import {
   Wallet, Clock, Music, ChevronRight, ChevronDown, Play, Lock,
   Trophy, Sliders, Users, Save, Shirt, BarChart3, Home, User, ShieldCheck,
