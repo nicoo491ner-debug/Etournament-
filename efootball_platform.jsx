@@ -989,18 +989,138 @@ function PlayerSection({ players, addPlayer, updatePlayer, applicant, setApplica
     }
   }
   function confirmTeamVerify() { setEntry("setPasscode"); }
-  function savePasscode() {
-    if (newPasscode.length < 4) { setPassErr("Passcode must be at least 4 characters"); return; }
-    if (newPasscode !== confirmPasscode) { setPassErr("Passcodes don't match"); return; }
-    const id = addPlayer({ name: applicant.name, team: setupTeam || null, managerName: setupManager || null, formation: setupFormation || null, strength: setupStrength, stars: starsFromStrength(setupStrength), baseRating: 70, w: 0, d: 0, l: 0, gf: 0, ga: 0, avatarUrl: setupAvatarUrl, passcode: newPasscode, isOwner: false });
-    setPassErr(""); setApplicant({ status: "none", name: "", contactMethod: "phone", contactValue: "", voucher: null }); setActivePlayerId(id); setEntry("dashboard");
-  }
-  function tryLogin() {
-    const match = players.find((p) => p.name.trim().toLowerCase() === loginName.trim().toLowerCase() && p.passcode === loginPasscode);
-    if (match) { setLoginErr(false); setActivePlayerId(match.id); setEntry("dashboard"); return; }
-    setLoginErr(true);
+  
+async function savePasscode() {
+  setPassErr("");
+
+  if (newPasscode.length < 6) {
+    setPassErr("Password must be at least 6 characters");
+    return;
   }
 
+  if (newPasscode !== confirmPasscode) {
+    setPassErr("Passwords don't match");
+    return;
+  }
+
+  if (!applicant.contactValue || !applicant.contactValue.includes("@")) {
+    setPassErr("Please use a valid email address");
+    return;
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: applicant.contactValue.trim(),
+    password: newPasscode,
+    options: {
+      data: {
+        username: applicant.name.trim()
+      }
+    }
+  });
+
+  if (error) {
+    setPassErr(error.message);
+    return;
+  }
+
+  if (!data.user) {
+    setPassErr("Account could not be created");
+    return;
+  }
+
+  const playerId = data.user.id;
+
+  const { error: profileError } = await supabase
+    .from("players")
+    .insert({
+      id: playerId,
+      username: applicant.name.trim(),
+      full_name: applicant.name.trim(),
+      team_name: setupTeam || null,
+      avatar: setupAvatarUrl || null
+    });
+
+  if (profileError) {
+    setPassErr(profileError.message);
+    return;
+  }
+
+  addPlayer({
+    name: applicant.name,
+    team: setupTeam || null,
+    managerName: setupManager || null,
+    formation: setupFormation || null,
+    strength: setupStrength,
+    stars: starsFromStrength(setupStrength),
+    baseRating: 70,
+    w: 0,
+    d: 0,
+    l: 0,
+    gf: 0,
+    ga: 0,
+    avatarUrl: setupAvatarUrl,
+    passcode: "",
+    isOwner: false
+  });
+
+  setApplicant({
+    status: "none",
+    name: "",
+    contactMethod: "email",
+    contactValue: "",
+    voucher: null
+  });
+
+  setPassErr("");
+  setEntry("login");
+}
+
+async function tryLogin() {
+  setLoginErr(false);
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: loginName.trim(),
+    password: loginPasscode
+  });
+
+  if (error || !data.user) {
+    setLoginErr(true);
+    return;
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("players")
+    .select("*")
+    .eq("id", data.user.id)
+    .single();
+
+  if (profileError || !profile) {
+    setLoginErr(true);
+    return;
+  }
+
+  const id = addPlayer({
+    name: profile.username,
+    team: profile.team_name || null,
+    managerName: null,
+    formation: null,
+    strength: 70,
+    stars: 3,
+    baseRating: 70,
+    w: 0,
+    d: 0,
+    l: 0,
+    gf: 0,
+    ga: 0,
+    avatarUrl: profile.avatar || null,
+    passcode: "",
+    isOwner: false
+  });
+
+  setLoginErr(false);
+  setActivePlayerId(id);
+  setEntry("dashboard");
+}
   if (entry === "dashboard" && activePlayerId) {
     const player = getPlayer(players, activePlayerId);
     if (!player) { setEntry("gate"); return null; }
