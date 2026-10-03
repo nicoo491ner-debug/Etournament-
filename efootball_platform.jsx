@@ -1143,7 +1143,7 @@ async function tryLogin() {
           <TextInput value={loginName} onChange={setLoginName} placeholder="Your name" />
           <TextInput type="password" value={loginPasscode} onChange={setLoginPasscode} placeholder="Your passcode" />
         </div>
-        {loginErr && <div style={{ fontSize: 12, color: C.danger }}>Name or passcode incorrect — check what you set at signup</div>}
+        {loginErr && <div style={{ fontSize: 12, color: C.danger }}>Email or password incorrect</div>}
         <button onClick={tryLogin} style={{ background: C.pitch, color: C.bg, border: "none", borderRadius: 8, padding: "10px 24px", fontFamily: FD, fontWeight: 700, cursor: "pointer" }}>Log In</button>
         <div style={{ fontSize: 10, color: C.muted }}>Owner/demo account: name Nick, passcode 1234</div>
         <button onClick={() => setEntry("gate")} style={{ background: "transparent", border: "none", color: C.muted, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>Not registered yet?</button>
